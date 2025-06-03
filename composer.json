@@ -35,7 +35,5 @@
     "psr-4": {
       "Tourze\\QUIC\\Congestion\\Tests\\": "tests/"
     }
-  },
-  "minimum-stability": "stable",
-  "prefer-stable": true
+  }
 }
