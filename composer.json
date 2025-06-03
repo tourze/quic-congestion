@@ -1,0 +1,41 @@
+{
+  "name": "tourze/quic-congestion",
+  "description": "QUIC协议拥塞控制算法实现 - 支持NewReno和BBR算法",
+  "type": "library",
+  "keywords": [
+    "quic",
+    "congestion-control",
+    "newreno",
+    "bbr",
+    "network",
+    "protocol"
+  ],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "tourze",
+      "email": "tourze@example.com"
+    }
+  ],
+  "require": {
+    "php": "^8.1",
+    "tourze/quic-core": "0.0.*",
+    "tourze/quic-recovery": "0.0.*"
+  },
+  "require-dev": {
+    "phpstan/phpstan": "^2.1",
+    "phpunit/phpunit": "^10.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Tourze\\QUIC\\Congestion\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tourze\\QUIC\\Congestion\\Tests\\": "tests/"
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}
