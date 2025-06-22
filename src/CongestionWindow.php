@@ -81,7 +81,7 @@ final class CongestionWindow
 
     /**
      * 慢启动窗口增长
-     * 
+     *
      * @param int $ackedBytes 确认的字节数
      */
     public function slowStartIncrease(int $ackedBytes): void
@@ -98,7 +98,7 @@ final class CongestionWindow
 
     /**
      * 拥塞避免窗口增长
-     * 
+     *
      * @param int $ackedBytes 确认的字节数
      */
     public function congestionAvoidanceIncrease(int $ackedBytes): void
@@ -116,7 +116,7 @@ final class CongestionWindow
 
     /**
      * 检测到拥塞时减少窗口
-     * 
+     *
      * @param float $reductionFactor 减少因子（默认0.5）
      */
     public function reduceCongestion(float $reductionFactor = 0.5): void
@@ -138,7 +138,7 @@ final class CongestionWindow
 
     /**
      * 检查是否可以发送数据包
-     * 
+     *
      * @param int $packetSize 数据包大小
      * @param int $bytesInFlight 当前在传输中的字节数
      */
@@ -149,7 +149,7 @@ final class CongestionWindow
 
     /**
      * 获取可用的发送窗口大小
-     * 
+     *
      * @param int $bytesInFlight 当前在传输中的字节数
      */
     public function getAvailableWindow(int $bytesInFlight): int

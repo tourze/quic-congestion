@@ -15,7 +15,6 @@ final class BBR implements CongestionControlInterface
     private const ALGORITHM_NAME = 'BBR';
     
     // BBR算法常量
-    private const BBR_UNIT = 1.0;
     private const BBR_STARTUP_GROWTH_TARGET = 1.25;   // 启动阶段增长目标
     private const BBR_GAIN_CYCLE_LENGTH = 8;          // 增益循环长度
     private const BBR_HIGH_GAIN = 2.885;              // 高增益
@@ -106,7 +105,7 @@ final class BBR implements CongestionControlInterface
 
     public function getSendingRate(): ?float
     {
-        return $this->pacingRate;
+        return $this->pacingRate > 0.0 ? $this->pacingRate : null;
     }
 
     public function isInSlowStart(): bool

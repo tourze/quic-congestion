@@ -124,14 +124,24 @@ final class CongestionControllerTest extends TestCase
 
     public function testGetters(): void
     {
-        $this->assertIsInt($this->controller->getCongestionWindow());
-        $this->assertIsInt($this->controller->getSlowStartThreshold());
-        $this->assertIsBool($this->controller->isInSlowStart());
+        $window = $this->controller->getCongestionWindow();
+        $threshold = $this->controller->getSlowStartThreshold();
+        $isInSlowStart = $this->controller->isInSlowStart();
+        
+        $this->assertGreaterThan(0, $window);
+        $this->assertGreaterThan(0, $threshold);
+        // isInSlowStart() 返回布尔值，根据具体状态验证
+        if ($this->controller->getAlgorithmName() === 'NewReno') {
+            // NewReno 初始状态应该在慢启动
+            $this->assertTrue($isInSlowStart);
+        }
         
         $sendingRate = $this->controller->getSendingRate();
-        $this->assertTrue(is_float($sendingRate) || is_null($sendingRate));
+        $this->assertTrue($sendingRate === null || $sendingRate >= 0.0);
         
-        $this->assertIsArray($this->controller->getStats());
+        $stats = $this->controller->getStats();
+        $this->assertNotEmpty($stats);
+        $this->assertArrayHasKey('algorithm', $stats);
     }
 
     public function testPacketTracking(): void
@@ -235,7 +245,8 @@ final class CongestionControllerTest extends TestCase
         
         // 应该能正常处理这些边缘情况
         $stats = $this->controller->getStats();
-        $this->assertIsArray($stats);
+        $this->assertNotEmpty($stats);
+        $this->assertArrayHasKey('algorithm', $stats);
     }
 
     public function testRttCalculations(): void

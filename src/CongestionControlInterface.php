@@ -14,7 +14,7 @@ interface CongestionControlInterface
 {
     /**
      * 当数据包被确认时调用
-     * 
+     *
      * @param int $packetNumber 数据包号
      * @param int $bytes 确认的字节数
      * @param float $sentTime 发送时间
@@ -24,7 +24,7 @@ interface CongestionControlInterface
 
     /**
      * 当检测到丢包时调用
-     * 
+     *
      * @param int $packetNumber 丢失的数据包号
      * @param int $bytes 丢失的字节数
      * @param float $sentTime 发送时间
@@ -34,7 +34,7 @@ interface CongestionControlInterface
 
     /**
      * 当发送数据包时调用
-     * 
+     *
      * @param int $packetNumber 数据包号
      * @param int $bytes 发送的字节数
      * @param float $sentTime 发送时间
@@ -53,7 +53,7 @@ interface CongestionControlInterface
 
     /**
      * 检查是否可以发送数据包
-     * 
+     *
      * @param int $bytes 要发送的字节数
      * @param int $bytesInFlight 当前在传输中的字节数
      */

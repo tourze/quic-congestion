@@ -16,9 +16,6 @@ final class NewReno implements CongestionControlInterface
     
     // 拥塞减少因子
     private const REDUCTION_FACTOR = 0.5;
-    
-    // 最大数据包大小
-    private const MAX_DATAGRAM_SIZE = 1200;
 
     private CongestionWindow $window;
     private bool $inRecovery = false;
@@ -182,7 +179,7 @@ final class NewReno implements CongestionControlInterface
 
     /**
      * 检查是否应该减少拥塞窗口
-     * 
+     *
      * @param float $currentTime 当前时间
      */
     public function shouldReduceCongestionWindow(float $currentTime): bool

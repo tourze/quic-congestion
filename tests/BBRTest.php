@@ -98,8 +98,22 @@ final class BBRTest extends TestCase
     {
         // BBR 支持发送速率控制
         $rate = $this->bbr->getSendingRate();
-        $this->assertIsFloat($rate);
-        $this->assertGreaterThanOrEqual(0.0, $rate);
+        
+        // 初始状态可能返回 null
+        if ($rate === null) {
+            $this->assertNull($rate);
+        } else {
+            $this->assertIsFloat($rate);
+            $this->assertGreaterThanOrEqual(0.0, $rate);
+        }
+        
+        // 发送和确认一些包后应该有速率
+        $this->bbr->onPacketSent(1, 1200, microtime(true));
+        $this->bbr->onPacketAcked(1, 1200, microtime(true) - 0.1, microtime(true));
+        
+        $rateAfter = $this->bbr->getSendingRate();
+        $this->assertNotNull($rateAfter);
+        $this->assertGreaterThan(0.0, $rateAfter);
     }
 
     public function testReset(): void
