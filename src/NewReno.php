@@ -6,7 +6,7 @@ namespace Tourze\QUIC\Congestion;
 
 /**
  * NewReno拥塞控制算法实现
- * 
+ *
  * 基于RFC 5681和RFC 9002实现的TCP NewReno算法的QUIC版本
  * 包含慢启动、拥塞避免、快速重传和快速恢复机制
  */

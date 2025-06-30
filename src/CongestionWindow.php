@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Tourze\QUIC\Congestion;
 
+use Tourze\QUIC\Congestion\Exception\InvalidReductionFactorException;
+
 /**
  * 拥塞窗口管理器
- * 
+ *
  * 负责管理QUIC连接的拥塞窗口大小
  * 提供窗口增长、减少和验证功能
  */
@@ -122,7 +124,7 @@ final class CongestionWindow
     public function reduceCongestion(float $reductionFactor = 0.5): void
     {
         if ($reductionFactor <= 0.0 || $reductionFactor >= 1.0) {
-            throw new \InvalidArgumentException('减少因子必须在0和1之间');
+            throw InvalidReductionFactorException::outOfRange($reductionFactor);
         }
 
         // 更新慢启动阈值

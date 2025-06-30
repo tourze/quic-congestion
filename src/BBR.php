@@ -6,7 +6,7 @@ namespace Tourze\QUIC\Congestion;
 
 /**
  * BBR拥塞控制算法实现
- * 
+ *
  * 基于Google的BBR v1算法实现，专注于带宽估算和RTT测量
  * 使用基于模型的方法而非丢包作为拥塞信号
  */

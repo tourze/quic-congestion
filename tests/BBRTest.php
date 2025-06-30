@@ -100,10 +100,7 @@ final class BBRTest extends TestCase
         $rate = $this->bbr->getSendingRate();
         
         // 初始状态可能返回 null
-        if ($rate === null) {
-            $this->assertNull($rate);
-        } else {
-            $this->assertIsFloat($rate);
+        if ($rate !== null) {
             $this->assertGreaterThanOrEqual(0.0, $rate);
         }
         

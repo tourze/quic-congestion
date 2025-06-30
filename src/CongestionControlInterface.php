@@ -6,7 +6,7 @@ namespace Tourze\QUIC\Congestion;
 
 /**
  * 拥塞控制接口
- * 
+ *
  * 定义QUIC拥塞控制算法的标准接口
  * 支持NewReno、BBR等不同的拥塞控制算法
  */
