@@ -4,19 +4,25 @@ declare(strict_types=1);
 
 namespace Tourze\QUIC\Congestion\Tests;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Tourze\QUIC\Congestion\CongestionWindow;
 use Tourze\QUIC\Congestion\NewReno;
 
 /**
  * NewReno拥塞控制算法测试
+ *
+ * @internal
  */
+#[CoversClass(NewReno::class)]
 final class NewRenoTest extends TestCase
 {
     private NewReno $newReno;
 
     protected function setUp(): void
     {
+        parent::setUp();
+
         $this->newReno = new NewReno();
     }
 
@@ -32,7 +38,7 @@ final class NewRenoTest extends TestCase
     public function testPacketSent(): void
     {
         $this->newReno->onPacketSent(1, 1200, microtime(true));
-        
+
         $stats = $this->newReno->getStats();
         $this->assertEquals(1200, $stats['total_bytes_sent']);
     }
@@ -42,13 +48,13 @@ final class NewRenoTest extends TestCase
         $initialWindow = $this->newReno->getCongestionWindow();
         $sentTime = microtime(true);
         $ackTime = $sentTime + 0.1;
-        
+
         $this->newReno->onPacketAcked(1, 1200, $sentTime, $ackTime);
-        
+
         // 慢启动阶段，窗口应该增加
         $this->assertGreaterThan($initialWindow, $this->newReno->getCongestionWindow());
         $this->assertTrue($this->newReno->isInSlowStart());
-        
+
         $stats = $this->newReno->getStats();
         $this->assertEquals(1, $stats['acked_packets']);
         $this->assertEquals(1200, $stats['total_bytes_acked']);
@@ -58,13 +64,13 @@ final class NewRenoTest extends TestCase
     {
         // 设置到拥塞避免阶段
         $this->newReno->setSlowStartThreshold(10000);
-        
+
         $initialWindow = $this->newReno->getCongestionWindow();
         $sentTime = microtime(true);
         $ackTime = $sentTime + 0.1;
-        
+
         $this->newReno->onPacketAcked(1, 1200, $sentTime, $ackTime);
-        
+
         // 拥塞避免阶段，窗口增长应该更慢
         $this->assertGreaterThan($initialWindow, $this->newReno->getCongestionWindow());
         $this->assertFalse($this->newReno->isInSlowStart());
@@ -75,14 +81,14 @@ final class NewRenoTest extends TestCase
     {
         $initialWindow = $this->newReno->getCongestionWindow();
         $lossTime = microtime(true);
-        
+
         $this->newReno->onPacketLost(1, 1200, $lossTime - 0.1, $lossTime);
-        
+
         // 丢包后窗口应该减少，并进入快速恢复
         $this->assertLessThan($initialWindow, $this->newReno->getCongestionWindow());
         $this->assertTrue($this->newReno->isInRecovery());
         $this->assertEquals('fast_recovery', $this->newReno->getCongestionState());
-        
+
         $stats = $this->newReno->getStats();
         $this->assertEquals(1, $stats['lost_packets']);
         $this->assertEquals(1200, $stats['total_bytes_lost']);
@@ -93,7 +99,7 @@ final class NewRenoTest extends TestCase
         // 先进入快速恢复
         $this->newReno->onPacketLost(1, 1200, microtime(true) - 0.1, microtime(true));
         $this->assertTrue($this->newReno->isInRecovery());
-        
+
         // 确认更高包号的包应该退出快速恢复
         $this->newReno->onPacketAcked(5, 1200, microtime(true) - 0.1, microtime(true));
         $this->assertFalse($this->newReno->isInRecovery());
@@ -117,16 +123,16 @@ final class NewRenoTest extends TestCase
         // 修改状态
         $this->newReno->onPacketSent(1, 1200, microtime(true));
         $this->newReno->onPacketLost(1, 1200, microtime(true) - 0.1, microtime(true));
-        
+
         $this->assertTrue($this->newReno->isInRecovery());
-        
+
         // 重置
         $this->newReno->reset();
-        
+
         $this->assertFalse($this->newReno->isInRecovery());
         $this->assertTrue($this->newReno->isInSlowStart());
         $this->assertEquals(12000, $this->newReno->getCongestionWindow());
-        
+
         $stats = $this->newReno->getStats();
         $this->assertEquals(0, $stats['acked_packets']);
         $this->assertEquals(0, $stats['lost_packets']);
@@ -136,15 +142,15 @@ final class NewRenoTest extends TestCase
     public function testMultipleLossesInRecovery(): void
     {
         $initialWindow = $this->newReno->getCongestionWindow();
-        
+
         // 第一个丢包
         $this->newReno->onPacketLost(1, 1200, microtime(true) - 0.1, microtime(true));
         $windowAfterFirstLoss = $this->newReno->getCongestionWindow();
-        
+
         // 同一快速恢复期间的第二个丢包（包号更小）
         $this->newReno->onPacketLost(0, 1200, microtime(true) - 0.1, microtime(true));
         $windowAfterSecondLoss = $this->newReno->getCongestionWindow();
-        
+
         // 窗口不应该再次减少
         $this->assertEquals($windowAfterFirstLoss, $windowAfterSecondLoss);
     }
@@ -154,11 +160,11 @@ final class NewRenoTest extends TestCase
         $this->newReno->onPacketSent(1, 1200, microtime(true));
         $this->newReno->onPacketSent(2, 1200, microtime(true));
         $this->newReno->onPacketSent(3, 1200, microtime(true));
-        
+
         $this->newReno->onPacketAcked(1, 1200, microtime(true) - 0.1, microtime(true));
         $this->newReno->onPacketLost(2, 1200, microtime(true) - 0.1, microtime(true));
         $this->newReno->onPacketAcked(3, 1200, microtime(true) - 0.1, microtime(true));
-        
+
         $stats = $this->newReno->getStats();
         $this->assertEquals(1200.0 / 3600.0, $stats['loss_rate']);
     }
@@ -167,7 +173,7 @@ final class NewRenoTest extends TestCase
     {
         $customWindow = new CongestionWindow(8000, 16000);
         $newReno = new NewReno($customWindow);
-        
+
         $this->assertEquals(8000, $newReno->getCongestionWindow());
         $this->assertEquals(16000, $newReno->getSlowStartThreshold());
     }
@@ -175,7 +181,7 @@ final class NewRenoTest extends TestCase
     public function testStats(): void
     {
         $stats = $this->newReno->getStats();
-        
+
         $this->assertArrayHasKey('algorithm', $stats);
         $this->assertArrayHasKey('congestion_window', $stats);
         $this->assertArrayHasKey('slow_start_threshold', $stats);
@@ -183,8 +189,69 @@ final class NewRenoTest extends TestCase
         $this->assertArrayHasKey('acked_packets', $stats);
         $this->assertArrayHasKey('lost_packets', $stats);
         $this->assertArrayHasKey('loss_rate', $stats);
-        
+
         $this->assertEquals('NewReno', $stats['algorithm']);
         $this->assertFalse($stats['in_recovery']);
     }
-} 
+
+    public function testOnPacketAcked(): void
+    {
+        $sentTime = microtime(true);
+        $ackTime = $sentTime + 0.1;
+
+        $this->newReno->onPacketAcked(1, 1200, $sentTime, $ackTime);
+
+        $stats = $this->newReno->getStats();
+        $this->assertEquals(1, $stats['acked_packets']);
+        $this->assertEquals(1200, $stats['total_bytes_acked']);
+    }
+
+    public function testOnPacketLost(): void
+    {
+        $sentTime = microtime(true);
+        $lossTime = $sentTime + 0.5;
+
+        $this->newReno->onPacketLost(1, 1200, $sentTime, $lossTime);
+
+        $stats = $this->newReno->getStats();
+        $this->assertEquals(1, $stats['lost_packets']);
+        $this->assertEquals(1200, $stats['total_bytes_lost']);
+    }
+
+    public function testOnPacketSent(): void
+    {
+        $sentTime = microtime(true);
+
+        $this->newReno->onPacketSent(1, 1200, $sentTime);
+
+        $stats = $this->newReno->getStats();
+        $this->assertEquals(1200, $stats['total_bytes_sent']);
+    }
+
+    public function testShouldReduceCongestionWindow(): void
+    {
+        $currentTime = microtime(true);
+
+        // 初始状态下，没有丢包，不应该减少窗口
+        $this->assertFalse($this->newReno->shouldReduceCongestionWindow($currentTime));
+
+        // 手动设置lastLossTime来模拟刚发生丢包但还未处理的状态
+        $lossTime = $currentTime;
+        $reflection = new \ReflectionClass($this->newReno);
+        $lastLossTimeProperty = $reflection->getProperty('lastLossTime');
+        $lastLossTimeProperty->setAccessible(true);
+        $lastLossTimeProperty->setValue($this->newReno, $lossTime);
+
+        // 有丢包记录且不在恢复期，应该减少窗口
+        $this->assertTrue($this->newReno->shouldReduceCongestionWindow($currentTime));
+
+        // 现在模拟进入快速恢复
+        $this->newReno->onPacketLost(1, 1200, $currentTime - 0.1, $currentTime);
+
+        // 确认已进入快速恢复
+        $this->assertTrue($this->newReno->isInRecovery());
+
+        // 在快速恢复期间，不应该再次减少窗口
+        $this->assertFalse($this->newReno->shouldReduceCongestionWindow($currentTime + 0.1));
+    }
+}

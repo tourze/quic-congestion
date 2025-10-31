@@ -15,29 +15,29 @@ interface CongestionControlInterface
     /**
      * 当数据包被确认时调用
      *
-     * @param int $packetNumber 数据包号
-     * @param int $bytes 确认的字节数
-     * @param float $sentTime 发送时间
-     * @param float $ackTime 确认时间
+     * @param int   $packetNumber 数据包号
+     * @param int   $bytes        确认的字节数
+     * @param float $sentTime     发送时间
+     * @param float $ackTime      确认时间
      */
     public function onPacketAcked(int $packetNumber, int $bytes, float $sentTime, float $ackTime): void;
 
     /**
      * 当检测到丢包时调用
      *
-     * @param int $packetNumber 丢失的数据包号
-     * @param int $bytes 丢失的字节数
-     * @param float $sentTime 发送时间
-     * @param float $lossTime 检测到丢失的时间
+     * @param int   $packetNumber 丢失的数据包号
+     * @param int   $bytes        丢失的字节数
+     * @param float $sentTime     发送时间
+     * @param float $lossTime     检测到丢失的时间
      */
     public function onPacketLost(int $packetNumber, int $bytes, float $sentTime, float $lossTime): void;
 
     /**
      * 当发送数据包时调用
      *
-     * @param int $packetNumber 数据包号
-     * @param int $bytes 发送的字节数
-     * @param float $sentTime 发送时间
+     * @param int   $packetNumber 数据包号
+     * @param int   $bytes        发送的字节数
+     * @param float $sentTime     发送时间
      */
     public function onPacketSent(int $packetNumber, int $bytes, float $sentTime): void;
 
@@ -54,7 +54,7 @@ interface CongestionControlInterface
     /**
      * 检查是否可以发送数据包
      *
-     * @param int $bytes 要发送的字节数
+     * @param int $bytes         要发送的字节数
      * @param int $bytesInFlight 当前在传输中的字节数
      */
     public function canSend(int $bytes, int $bytesInFlight): bool;
@@ -77,6 +77,8 @@ interface CongestionControlInterface
 
     /**
      * 获取拥塞控制统计信息
+     *
+     * @return array<string, mixed>
      */
     public function getStats(): array;
 
@@ -84,4 +86,4 @@ interface CongestionControlInterface
      * 获取算法名称
      */
     public function getAlgorithmName(): string;
-} 
+}

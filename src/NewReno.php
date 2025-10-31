@@ -13,18 +13,26 @@ namespace Tourze\QUIC\Congestion;
 final class NewReno implements CongestionControlInterface
 {
     private const ALGORITHM_NAME = 'NewReno';
-    
+
     // 拥塞减少因子
     private const REDUCTION_FACTOR = 0.5;
 
     private CongestionWindow $window;
+
     private bool $inRecovery = false;
+
     private int $recoveryPacketNumber = 0;
+
     private int $ackedPackets = 0;
+
     private int $lostPackets = 0;
+
     private float $lastLossTime = 0.0;
+
     private int $totalBytesSent = 0;
+
     private int $totalBytesAcked = 0;
+
     private int $totalBytesLost = 0;
 
     public function __construct(?CongestionWindow $window = null)
@@ -34,7 +42,7 @@ final class NewReno implements CongestionControlInterface
 
     public function onPacketAcked(int $packetNumber, int $bytes, float $sentTime, float $ackTime): void
     {
-        $this->ackedPackets++;
+        ++$this->ackedPackets;
         $this->totalBytesAcked += $bytes;
 
         // 检查是否退出快速恢复
@@ -57,7 +65,7 @@ final class NewReno implements CongestionControlInterface
 
     public function onPacketLost(int $packetNumber, int $bytes, float $sentTime, float $lossTime): void
     {
-        $this->lostPackets++;
+        ++$this->lostPackets;
         $this->totalBytesLost += $bytes;
         $this->lastLossTime = $lossTime;
 
@@ -117,10 +125,31 @@ final class NewReno implements CongestionControlInterface
         $this->totalBytesLost = 0;
     }
 
+    /**
+     * @return array{
+     *     congestion_window: int,
+     *     slow_start_threshold: int,
+     *     bytes_in_flight: int,
+     *     is_slow_start: bool,
+     *     available_window: int,
+     *     last_update_time: float,
+     *     window_utilization: float,
+     *     algorithm: string,
+     *     in_recovery: bool,
+     *     recovery_packet_number: int,
+     *     acked_packets: int,
+     *     lost_packets: int,
+     *     loss_rate: float,
+     *     total_bytes_sent: int,
+     *     total_bytes_acked: int,
+     *     total_bytes_lost: int,
+     *     last_loss_time: float
+     * }
+     */
     public function getStats(): array
     {
         $windowStats = $this->window->getStats();
-        
+
         return array_merge($windowStats, [
             'algorithm' => self::ALGORITHM_NAME,
             'in_recovery' => $this->inRecovery,
@@ -170,7 +199,7 @@ final class NewReno implements CongestionControlInterface
      */
     private function calculateLossRate(): float
     {
-        if ($this->totalBytesSent === 0) {
+        if (0 === $this->totalBytesSent) {
             return 0.0;
         }
 
@@ -190,7 +219,7 @@ final class NewReno implements CongestionControlInterface
         }
 
         // 如果最近没有丢包，不需要减少
-        if ($this->lastLossTime === 0.0) {
+        if (0.0 === $this->lastLossTime) {
             return false;
         }
 
@@ -229,4 +258,4 @@ final class NewReno implements CongestionControlInterface
     {
         $this->window->setSlowStartThreshold($threshold);
     }
-} 
+}

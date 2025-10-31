@@ -4,18 +4,24 @@ declare(strict_types=1);
 
 namespace Tourze\QUIC\Congestion\Tests;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Tourze\QUIC\Congestion\CongestionWindow;
 
 /**
  * 拥塞窗口测试
+ *
+ * @internal
  */
+#[CoversClass(CongestionWindow::class)]
 final class CongestionWindowTest extends TestCase
 {
     private CongestionWindow $window;
 
     protected function setUp(): void
     {
+        parent::setUp();
+
         $this->window = new CongestionWindow();
     }
 
@@ -30,7 +36,7 @@ final class CongestionWindowTest extends TestCase
     {
         $initialSize = $this->window->getSize();
         $this->window->slowStartIncrease(1200);
-        
+
         $this->assertEquals($initialSize + 1200, $this->window->getSize());
         $this->assertTrue($this->window->isInSlowStart());
     }
@@ -39,10 +45,10 @@ final class CongestionWindowTest extends TestCase
     {
         // 设置到拥塞避免阶段
         $this->window->setSlowStartThreshold(10000);
-        
+
         $initialSize = $this->window->getSize();
         $this->window->congestionAvoidanceIncrease(1200);
-        
+
         // 拥塞避免增长应该较慢
         $expectedIncrease = (1200 * 1200) / $initialSize;
         $this->assertEquals($initialSize + max(1, (int) $expectedIncrease), $this->window->getSize());
@@ -53,7 +59,7 @@ final class CongestionWindowTest extends TestCase
     {
         $initialSize = $this->window->getSize();
         $this->window->reduceCongestion(0.5);
-        
+
         $expectedSize = (int) ($initialSize * 0.5);
         $this->assertEquals($expectedSize, $this->window->getSlowStartThreshold());
         $this->assertEquals($expectedSize, $this->window->getSize());
@@ -78,7 +84,7 @@ final class CongestionWindowTest extends TestCase
         // 测试最小窗口限制
         $this->window->setSize(100);
         $this->assertEquals(2400, $this->window->getSize()); // MIN_WINDOW_SIZE = 2 * 1200
-        
+
         // 测试最大窗口限制
         $this->window->setSize(100 * 1024 * 1024);
         $this->assertEquals(64 * 1024 * 1024, $this->window->getSize()); // MAX_WINDOW_SIZE
@@ -89,9 +95,9 @@ final class CongestionWindowTest extends TestCase
         $this->window->setSize(20000);
         $this->window->setSlowStartThreshold(15000);
         $this->window->setBytesInFlight(5000);
-        
+
         $this->window->reset();
-        
+
         $this->assertEquals(12000, $this->window->getSize());
         $this->assertEquals(64 * 1024 * 1024, $this->window->getSlowStartThreshold());
         $this->assertEquals(0, $this->window->getBytesInFlight());
@@ -101,14 +107,14 @@ final class CongestionWindowTest extends TestCase
     public function testStats(): void
     {
         $stats = $this->window->getStats();
-        
+
         $this->assertArrayHasKey('congestion_window', $stats);
         $this->assertArrayHasKey('slow_start_threshold', $stats);
         $this->assertArrayHasKey('bytes_in_flight', $stats);
         $this->assertArrayHasKey('is_slow_start', $stats);
         $this->assertArrayHasKey('available_window', $stats);
         $this->assertArrayHasKey('window_utilization', $stats);
-        
+
         $this->assertEquals(12000, $stats['congestion_window']);
         $this->assertTrue($stats['is_slow_start']);
         $this->assertEquals(0.0, $stats['window_utilization']);
@@ -124,7 +130,35 @@ final class CongestionWindowTest extends TestCase
     {
         $this->window->setBytesInFlight(6000);
         $stats = $this->window->getStats();
-        
+
         $this->assertEquals(0.5, $stats['window_utilization']);
     }
-} 
+
+    public function testCongestionAvoidanceIncrease(): void
+    {
+        // 设置到拥塞避免阶段
+        $this->window->setSlowStartThreshold(10000);
+
+        $initialSize = $this->window->getSize();
+        $this->window->congestionAvoidanceIncrease(1200);
+
+        // 拥塞避免阶段的增长应该较慢
+        $this->assertGreaterThan($initialSize, $this->window->getSize());
+        $this->assertFalse($this->window->isInSlowStart());
+
+        // 验证实际的拥塞避免增长算法：(MSS * ackedBytes) / congestionWindow
+        // 期望的增长 = (1200 * 1200) / 12000 = 120
+        $expectedIncrease = (1200 * 1200) / $initialSize;
+        $actualIncrease = max(1, (int) $expectedIncrease);
+        $this->assertEquals($initialSize + $actualIncrease, $this->window->getSize());
+
+        // 再次调用，验证一致性
+        $sizeAfterFirst = $this->window->getSize();
+        $this->window->congestionAvoidanceIncrease(1200);
+        $sizeAfterSecond = $this->window->getSize();
+
+        $expectedSecondIncrease = (1200 * 1200) / $sizeAfterFirst;
+        $actualSecondIncrease = max(1, (int) $expectedSecondIncrease);
+        $this->assertEquals($sizeAfterFirst + $actualSecondIncrease, $sizeAfterSecond);
+    }
+}

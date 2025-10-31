@@ -13,14 +13,14 @@ namespace Tourze\QUIC\Congestion;
 final class BBR implements CongestionControlInterface
 {
     private const ALGORITHM_NAME = 'BBR';
-    
+
     // BBR算法常量
     private const BBR_STARTUP_GROWTH_TARGET = 1.25;   // 启动阶段增长目标
     private const BBR_GAIN_CYCLE_LENGTH = 8;          // 增益循环长度
     private const BBR_HIGH_GAIN = 2.885;              // 高增益
     private const BBR_PROBE_RTT_DURATION = 200.0;    // ProbeRTT持续时间（毫秒）
     private const BBR_MIN_PIPE_CWND = 4;              // 最小管道拥塞窗口（包数）
-    
+
     // 状态常量
     private const STATE_STARTUP = 'startup';
     private const STATE_DRAIN = 'drain';
@@ -31,29 +31,45 @@ final class BBR implements CongestionControlInterface
     private const PACING_GAIN_CYCLE = [1.25, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
 
     private string $state = self::STATE_STARTUP;
+
     private float $bandwidthEstimate = 0.0;      // 当前带宽估算（字节/秒）
+
     private float $maxBandwidth = 0.0;           // 最大带宽
+
     private float $minRtt = INF;                 // 最小RTT
+
     private float $rtProp = INF;                 // RTT传播延迟
+
     private int $congestionWindow;
+
     private float $pacingRate = 0.0;             // 发送速率
-    
+
     // 状态追踪
     private int $cycleIndex = 0;                 // 当前增益循环索引
+
     private float $cycleStart = 0.0;             // 循环开始时间
+
     private bool $packetConservation = false;   // 包守恒模式
+
     private float $probeRttStart = 0.0;          // ProbeRTT开始时间
+
     private bool $probeRttDone = false;          // ProbeRTT完成标志
+
     private float $priorCwnd = 0.0;              // 进入ProbeRTT前的窗口大小
-    
+
     // 带宽采样
+    /** @var array<float> */
     private array $bandwidthSamples = [];        // 带宽样本
+
     private int $maxBandwidthFilter = 10;        // 最大带宽过滤器长度
-    
+
     // 统计信息
     private int $totalBytesSent = 0;
+
     private int $totalBytesAcked = 0;
+
     private int $ackedPackets = 0;
+
     private int $lostPackets = 0;
 
     public function __construct(int $initialCwnd = 10 * 1200)
@@ -65,9 +81,9 @@ final class BBR implements CongestionControlInterface
 
     public function onPacketAcked(int $packetNumber, int $bytes, float $sentTime, float $ackTime): void
     {
-        $this->ackedPackets++;
+        ++$this->ackedPackets;
         $this->totalBytesAcked += $bytes;
-        
+
         $rtt = $ackTime - $sentTime;
         $this->updateRtt($rtt);
         $this->updateBandwidth($bytes, $rtt);
@@ -78,7 +94,7 @@ final class BBR implements CongestionControlInterface
 
     public function onPacketLost(int $packetNumber, int $bytes, float $sentTime, float $lossTime): void
     {
-        $this->lostPackets++;
+        ++$this->lostPackets;
         // BBR主要不基于丢包进行拥塞控制，但记录统计信息
     }
 
@@ -110,7 +126,7 @@ final class BBR implements CongestionControlInterface
 
     public function isInSlowStart(): bool
     {
-        return $this->state === self::STATE_STARTUP;
+        return self::STATE_STARTUP === $this->state;
     }
 
     public function reset(): void
@@ -135,19 +151,20 @@ final class BBR implements CongestionControlInterface
         $this->lostPackets = 0;
     }
 
+    /** @return array<string, mixed> */
     public function getStats(): array
     {
         $totalPackets = $this->ackedPackets + $this->lostPackets;
         $lossRate = $totalPackets > 0 ? $this->lostPackets / $totalPackets : 0.0;
-        
+
         return [
             'algorithm' => self::ALGORITHM_NAME,
             'state' => $this->state,
             'congestion_window' => $this->congestionWindow,
             'bandwidth_estimate' => $this->bandwidthEstimate,
             'max_bandwidth' => $this->maxBandwidth,
-            'min_rtt' => $this->minRtt === INF ? 0.0 : $this->minRtt,
-            'rt_prop' => $this->rtProp === INF ? 0.0 : $this->rtProp,
+            'min_rtt' => INF === $this->minRtt ? 0.0 : $this->minRtt,
+            'rt_prop' => INF === $this->rtProp ? 0.0 : $this->rtProp,
             'pacing_rate' => $this->pacingRate,
             'cycle_index' => $this->cycleIndex,
             'packet_conservation' => $this->packetConservation,
@@ -171,9 +188,9 @@ final class BBR implements CongestionControlInterface
     {
         if ($rtt > 0) {
             $this->minRtt = min($this->minRtt, $rtt);
-            
+
             // 更新RTT传播延迟
-            if ($this->rtProp === INF || $rtt < $this->rtProp) {
+            if (INF === $this->rtProp || $rtt < $this->rtProp) {
                 $this->rtProp = $rtt;
             }
         }
@@ -187,17 +204,17 @@ final class BBR implements CongestionControlInterface
         if ($rtt <= 0.0) {
             return;
         }
-        
+
         $bandwidth = $bytes / $rtt;
         $this->bandwidthSamples[] = $bandwidth;
-        
+
         // 保持固定长度的样本窗口
         if (count($this->bandwidthSamples) > $this->maxBandwidthFilter) {
             array_shift($this->bandwidthSamples);
         }
-        
+
         // 计算最大带宽
-        if (!empty($this->bandwidthSamples)) {
+        if (count($this->bandwidthSamples) > 0) {
             $this->maxBandwidth = max($this->bandwidthSamples);
             $this->bandwidthEstimate = $this->maxBandwidth;
         }
@@ -212,15 +229,15 @@ final class BBR implements CongestionControlInterface
             case self::STATE_STARTUP:
                 $this->updateStartup();
                 break;
-                
+
             case self::STATE_DRAIN:
                 $this->updateDrain();
                 break;
-                
+
             case self::STATE_PROBE_BW:
                 $this->updateProbeBw($currentTime);
                 break;
-                
+
             case self::STATE_PROBE_RTT:
                 $this->updateProbeRtt($currentTime);
                 break;
@@ -247,10 +264,17 @@ final class BBR implements CongestionControlInterface
         if (count($this->bandwidthSamples) < 3) {
             return false;
         }
-        
+
         $recent = array_slice($this->bandwidthSamples, -3);
-        $growth = end($recent) / $recent[0];
-        
+        $lastValue = end($recent);
+        $firstValue = $recent[0];
+
+        if (false === $lastValue || 0.0 === $firstValue) {
+            return false;
+        }
+
+        $growth = $lastValue / $firstValue;
+
         return $growth < self::BBR_STARTUP_GROWTH_TARGET;
     }
 
@@ -278,7 +302,7 @@ final class BBR implements CongestionControlInterface
             $this->cycleIndex = ($this->cycleIndex + 1) % self::BBR_GAIN_CYCLE_LENGTH;
             $this->cycleStart = $currentTime;
         }
-        
+
         // 检查是否需要进入ProbeRTT
         if ($this->shouldEnterProbeRtt($currentTime)) {
             $this->state = self::STATE_PROBE_RTT;
@@ -296,7 +320,7 @@ final class BBR implements CongestionControlInterface
         if ($currentTime - $this->probeRttStart >= self::BBR_PROBE_RTT_DURATION) {
             $this->probeRttDone = true;
         }
-        
+
         if ($this->probeRttDone) {
             $this->state = self::STATE_PROBE_BW;
             $this->congestionWindow = (int) $this->priorCwnd;
@@ -320,8 +344,8 @@ final class BBR implements CongestionControlInterface
     {
         $gain = $this->getCurrentCwndGain();
         $targetCwnd = $this->calculateTargetCwnd($gain);
-        
-        if ($this->state === self::STATE_PROBE_RTT) {
+
+        if (self::STATE_PROBE_RTT === $this->state) {
             $this->congestionWindow = max(
                 self::BBR_MIN_PIPE_CWND * 1200,
                 (int) ($targetCwnd * 0.5)
@@ -339,16 +363,16 @@ final class BBR implements CongestionControlInterface
         switch ($this->state) {
             case self::STATE_STARTUP:
                 return self::BBR_HIGH_GAIN;
-                
+
             case self::STATE_DRAIN:
                 return 1.0 / self::BBR_HIGH_GAIN;
-                
+
             case self::STATE_PROBE_BW:
                 return self::PACING_GAIN_CYCLE[$this->cycleIndex];
-                
+
             case self::STATE_PROBE_RTT:
                 return 1.0;
-                
+
             default:
                 return 1.0;
         }
@@ -359,11 +383,12 @@ final class BBR implements CongestionControlInterface
      */
     private function calculateTargetCwnd(float $gain): float
     {
-        if ($this->bandwidthEstimate <= 0 || $this->rtProp === INF) {
+        if ($this->bandwidthEstimate <= 0 || INF === $this->rtProp) {
             return 10 * 1200; // 默认窗口
         }
-        
+
         $bdp = $this->bandwidthEstimate * $this->rtProp; // 带宽延迟积
+
         return max(self::BBR_MIN_PIPE_CWND * 1200, $bdp * $gain);
     }
 

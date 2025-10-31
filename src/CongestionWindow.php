@@ -16,24 +16,27 @@ final class CongestionWindow
 {
     // 最大数据包大小（字节）
     private const MAX_DATAGRAM_SIZE = 1200;
-    
+
     // 最小拥塞窗口（2个数据包）
     private const MIN_WINDOW_SIZE = 2 * self::MAX_DATAGRAM_SIZE;
-    
+
     // 最大拥塞窗口（64MB）
     private const MAX_WINDOW_SIZE = 64 * 1024 * 1024;
-    
+
     // 初始拥塞窗口（10个数据包）
     private const INITIAL_WINDOW_SIZE = 10 * self::MAX_DATAGRAM_SIZE;
 
     private int $congestionWindow;
+
     private int $slowStartThreshold;
+
     private int $bytesInFlight = 0;
+
     private float $lastUpdateTime = 0.0;
 
     public function __construct(
         int $initialWindow = self::INITIAL_WINDOW_SIZE,
-        int $initialSSThresh = self::MAX_WINDOW_SIZE
+        int $initialSSThresh = self::MAX_WINDOW_SIZE,
     ) {
         $this->congestionWindow = max($initialWindow, self::MIN_WINDOW_SIZE);
         $this->slowStartThreshold = $initialSSThresh;
@@ -141,7 +144,7 @@ final class CongestionWindow
     /**
      * 检查是否可以发送数据包
      *
-     * @param int $packetSize 数据包大小
+     * @param int $packetSize    数据包大小
      * @param int $bytesInFlight 当前在传输中的字节数
      */
     public function canSend(int $packetSize, int $bytesInFlight): bool
@@ -196,6 +199,16 @@ final class CongestionWindow
 
     /**
      * 获取窗口统计信息
+     *
+     * @return array{
+     *     congestion_window: int,
+     *     slow_start_threshold: int,
+     *     bytes_in_flight: int,
+     *     is_slow_start: bool,
+     *     available_window: int,
+     *     last_update_time: float,
+     *     window_utilization: float
+     * }
      */
     public function getStats(): array
     {
@@ -209,4 +222,4 @@ final class CongestionWindow
             'window_utilization' => $this->bytesInFlight / $this->congestionWindow,
         ];
     }
-} 
+}
