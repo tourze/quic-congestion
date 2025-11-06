@@ -18,7 +18,7 @@
     }
   ],
   "require": {
-    "tourze/quic-core": "0.0.*",
+    "tourze/quic-core": "0.1.*",
     "tourze/quic-recovery": "0.0.*"
   },
   "require-dev": {
